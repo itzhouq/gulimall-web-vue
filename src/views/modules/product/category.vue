@@ -8,6 +8,8 @@
       show-checkbox
       node-key="catId"
       :default-expanded-keys="expandedKey"
+      draggable
+      :allow-drop="allowDrop"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -29,7 +31,12 @@
       </span>
     </el-tree>
 
-    <el-dialog :title="title" :visible.sync="dialogVisible" width="30%" :close-on-click-modal="false">
+    <el-dialog
+      :title="title"
+      :visible.sync="dialogVisible"
+      width="30%"
+      :close-on-click-modal="false"
+    >
       <el-form :model="category">
         <el-form-item label="分类名称">
           <el-input v-model="category.name" autocomplete="off"></el-input>
@@ -57,6 +64,7 @@ export default {
     return {
       menus: [],
       title: "",
+      maxLevel: 0,
       dialogType: "", // add edit
       category: {
         name: "",
@@ -88,6 +96,32 @@ export default {
         this.menus = data.data;
       });
     },
+    allowDrop(draggingNode, dropNode, type) {
+      // 1. 被拖动的当前节点以及所在父节点总层数不能大于3
+      // 1）被拖动的当前节点的总层数
+      console.log("allowDrop: ", draggingNode, dropNode, type);
+      this.countNodeLevel(draggingNode.data);
+      // 当前正在拖动的节点 + 父节点所在的深度不大于3即可
+      let deep = (this.maxLevel - draggingNode.data.catLevel) + 1;
+      console.log("深度：", deep);
+
+      if(type == "inner") {
+        return (deep + dropNode.level) <= 3;
+      } else {
+        return (deep + dropNode.parent.level) <= 3;
+      }
+    },
+    countNodeLevel(node) {
+      // 找到所有子节点，求出最大深度
+      if (node.children != null && node.children.length > 0) {
+        for (let i = 0; i < node.children.length; i++) {
+          if (node.children[i].catLevel > this.maxLevel) {
+            this.maxLevel = node.children[i].catLevel;
+          }
+          this.countNodeLevel(node.children[i]);
+        }
+      }
+    },
     submitData() {
       if (this.dialogType == "add") {
         this.addCategory();
@@ -98,11 +132,11 @@ export default {
     },
     // 修改三级分类数据
     editCategory() {
-      var {catId, name, icon, productUnit} = this.category;
+      var { catId, name, icon, productUnit } = this.category;
       this.$http({
         url: this.$http.adornUrl("/product/category/update"),
         method: "post",
-        data: this.$http.adornData({catId, name, icon, productUnit}, false),
+        data: this.$http.adornData({ catId, name, icon, productUnit }, false),
       }).then(({ data }) => {
         this.$message({
           message: "菜单修改成功",
@@ -162,14 +196,12 @@ export default {
       this.dialogVisible = true;
       this.category.parentCid = data.catId;
       this.category.catLevel = data.catLevel * 1 + 1;
-        this.category.name = "";
-        this.category.catId = null;
-        this.category.icon = "";
-        this.category.productUnit = "";
-        this.category.sort = 0;
-        this.category.showStatus = 1;
-      
-
+      this.category.name = "";
+      this.category.catId = null;
+      this.category.icon = "";
+      this.category.productUnit = "";
+      this.category.sort = 0;
+      this.category.showStatus = 1;
     },
     remove(node, data) {
       var ids = [data.catId];
