@@ -90,7 +90,7 @@ import AddOrUpdate from "./attrgroup-add-or-update";
 import RelationUpdate from "./attr-group-relation";
 export default {
   //import引入的组件需要注入到对象中才能使用
-  components: { Category, AddOrUpdate , RelationUpdate },
+  components: { Category, AddOrUpdate, RelationUpdate },
   props: {},
   data() {
     return {
